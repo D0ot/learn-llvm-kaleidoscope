@@ -1,6 +1,7 @@
 #include <cctype>
 #include <cstdio>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <map>
 #include "ast.h"
@@ -28,9 +29,9 @@ static int gettok() {
     LastChar = getchar();
   }
 
-  if(std::isalpha(LastChar)) {
+  if(isalpha(LastChar)) {
     IdentifierStr = LastChar;
-    while(std::isalnum((LastChar = getchar()))) {
+    while(isalnum((LastChar = getchar()))) {
       IdentifierStr += LastChar;
     }
 
@@ -44,13 +45,13 @@ static int gettok() {
     return tok_identifier;
   }
 
-  if(std::isdigit(LastChar) || LastChar == '.') {
+  if(isdigit(LastChar) || LastChar == '.') {
     std::string NumStr;
     do {
       NumStr += LastChar;
       LastChar = getchar();
     } while(isdigit(LastChar) || LastChar == '.');
-    NumVal = strtod(NumStr.c_str(), 0);
+    NumVal = strtod(NumStr.c_str(), nullptr);
     return tok_number;
   }
 
@@ -77,6 +78,7 @@ static int gettok() {
 
 static int CurTok;
 static int getNextToken() {
+  fprintf(stderr, "CurTok == %d\n", CurTok);
   return CurTok = gettok();
 }
 
@@ -137,7 +139,7 @@ static std::unique_ptr<ExprAST> ParseIdentifierExpr() {
   std::string IdName = IdentifierStr;
   getNextToken();
 
-  if(CurTok != ')') {
+  if(CurTok != '(') {
     return std::make_unique<VariableExprAST>(IdName);
   }
 
@@ -237,8 +239,108 @@ static std::unique_ptr<PrototypeAST> ParsePrototype() {
   std::string FnName = IdentifierStr;
   getNextToken();
 
+  if(CurTok != '(') {
+    return LogErrorP("Expected '(' in prototype");
+  }
+
+  std::vector<std::string> ArgNames;
+  while(getNextToken() == tok_identifier) {
+    ArgNames.push_back(IdentifierStr);
+  }
+
+  if(CurTok != ')') {
+    return LogErrorP("Expected ')' in prototype");
+  }
+
+  getNextToken(); //eat ')'
+
+  return std::make_unique<PrototypeAST>(FnName, std::move(ArgNames));
+}
+
+static std::unique_ptr<FunctionAST> ParseDefinition() {
+  getNextToken();
+
+  auto Proto = ParsePrototype();
+
+  if(!Proto) return nullptr;
+
+  if(auto E = ParseExpression()) {
+    return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
+  }
+
+  return nullptr;
+}
+
+static std::unique_ptr<PrototypeAST> ParseExtern() {
+  getNextToken();
+  return ParsePrototype();
+}
+
+static std::unique_ptr<FunctionAST> ParseTopLevelExpr() {
+  if(auto E = ParseExpression()) {
+    auto Proto = std::make_unique<PrototypeAST>("", std::vector<std::string>());
+    return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
+  }
+  return nullptr;
+}
+
+static void HandleDefinition() {
+  if(ParseDefinition()) {
+    fprintf(stderr, "Parsed a function definition.\n");
+  } else {
+    getNextToken();
+  }
+}
+
+static void HandleExtern() {
+  if(ParseExtern()) {
+    fprintf(stderr, "Parsed an extern\n");
+  } else {
+    getNextToken();
+  }
+}
+
+static void HandleTopLevelExpression() {
+  if(ParseTopLevelExpr()) {
+    fprintf(stderr, "Parsed a top-level expression\n");
+  } else {
+    getNextToken();
+  }
+}
+
+
+static void MainLoop() {
+  while(1) {
+    fprintf(stderr, "ready> ");
+    switch(CurTok) {
+      case tok_eof:
+        return;
+      case ';':
+        getNextToken();
+        break;
+      case tok_def:
+        HandleDefinition();
+        break;
+      case tok_extern:
+        HandleExtern();
+        break;
+      default:
+        HandleTopLevelExpression();
+        break;
+    }
+  }
 }
 
 int main(int argc, char **argv) {
-  std::cout << "Hello World" << std::endl;
+  BinopPrecedence['<'] = 10;
+  BinopPrecedence['+'] = 20;
+  BinopPrecedence['-'] = 20;
+  BinopPrecedence['*'] = 40;
+
+  fprintf(stderr, "ready> ");
+  getNextToken();
+
+  MainLoop();
+
+  return 0;
 }
