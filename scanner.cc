@@ -41,6 +41,7 @@ int gettok() {
     if(IdentifierStr == "else") {
       return tok_else;
     }
+
     return tok_identifier;
   }
 

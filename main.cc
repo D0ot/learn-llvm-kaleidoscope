@@ -10,7 +10,6 @@
 
 #include "parser.h"
 #include "scanner.h"
-#include "KaleidoscopeJIT.h"
 
 
 
@@ -74,10 +73,6 @@ static void MainLoop() {
 }
 
 int main(int argc, char **argv) {
-  InitializeNativeTarget();
-  InitializeNativeTargetAsmPrinter();
-  InitializeNativeTargetAsmParser();
-
   BinopPrecedence['<'] = 10;
   BinopPrecedence['+'] = 20;
   BinopPrecedence['-'] = 20;
@@ -86,8 +81,7 @@ int main(int argc, char **argv) {
   fprintf(stderr, "ready> ");
   getNextToken();
 
-  TheJIT = std::make_unique<KaleidoscopeJIT>();
-
+  InitializeModuleAndPassManager();
   MainLoop();
 
   return 0;
