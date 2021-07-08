@@ -9,8 +9,6 @@
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/GVN.h"
 
-#include "KaleidoscopeJIT.h"
-
 using namespace llvm;
 using namespace llvm::orc;
 
