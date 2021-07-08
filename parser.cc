@@ -5,6 +5,10 @@
 #include "parser.h"
 #include "scanner.h"
 
+#include "llvm/Transforms/InstCombine/InstCombine.h"
+#include "llvm/Transforms/Scalar.h"
+#include "llvm/Transforms/Scalar/GVN.h"
+
 using namespace llvm;
 
 std::unique_ptr<ExprAST> LogError(const char *Str) {
@@ -201,7 +205,7 @@ std::unique_ptr<LLVMContext> TheContext;
 std::unique_ptr<Module> TheModule;
 std::unique_ptr<IRBuilder<>> Builder;
 std::map<std::string, Value *> NamedValues;
-extern std::unique_ptr<legacy::FunctionPassManager> TheFPM;
+std::unique_ptr<legacy::FunctionPassManager> TheFPM;
 
 
 Value *LogErrorV(const char *Str) {
@@ -305,6 +309,7 @@ Function *FunctionAST::codegen() {
   if(Value *RetVal = Body->codegen()) {
     Builder->CreateRet(RetVal);
     verifyFunction(*TheFunction);
+    TheFPM->run(*TheFunction);
     return TheFunction;
   }
   
@@ -318,5 +323,11 @@ void InitializeModuleAndPassManager() {
   Builder = std::make_unique<IRBuilder<>>(*TheContext);
 
   TheFPM = std::make_unique<legacy::FunctionPassManager>(TheModule.get());
+
+  TheFPM->add(createInstructionCombiningPass());
+  TheFPM->add(createReassociatePass());
+  TheFPM->add(createGVNPass());
+  TheFPM->add(createCFGSimplificationPass());
+  TheFPM->doInitialization();
   
 }

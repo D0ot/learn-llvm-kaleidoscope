@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
   fprintf(stderr, "ready> ");
   getNextToken();
 
-  InitializeModule();
+  InitializeModuleAndPassManager();
 
   MainLoop();
 
