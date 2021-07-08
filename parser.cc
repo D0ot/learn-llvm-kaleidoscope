@@ -201,6 +201,7 @@ std::unique_ptr<LLVMContext> TheContext;
 std::unique_ptr<Module> TheModule;
 std::unique_ptr<IRBuilder<>> Builder;
 std::map<std::string, Value *> NamedValues;
+extern std::unique_ptr<legacy::FunctionPassManager> TheFPM;
 
 
 Value *LogErrorV(const char *Str) {
@@ -311,9 +312,11 @@ Function *FunctionAST::codegen() {
   return nullptr;
 }
 
-void InitializeModule() {
+void InitializeModuleAndPassManager() {
   TheContext = std::make_unique<LLVMContext>();
   TheModule = std::make_unique<Module>("my jit", *TheContext);
-
   Builder = std::make_unique<IRBuilder<>>(*TheContext);
+
+  TheFPM = std::make_unique<legacy::FunctionPassManager>(TheModule.get());
+  
 }

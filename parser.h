@@ -8,6 +8,7 @@
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/IR/BasicBlock.h"
+#include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
@@ -16,6 +17,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Verifier.h"
+#include <llvm/Support/Error.h>
 
 
 using namespace llvm;
@@ -90,10 +92,14 @@ extern std::unique_ptr<Module> TheModule;
 extern std::unique_ptr<IRBuilder<>> Builder;
 extern std::map<std::string, Value *> NamedValues;
 
+extern std::unique_ptr<legacy::FunctionPassManager> TheFPM;
+extern std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
+extern ExitOnError ExitOnErr;
 
 
 
-void InitializeModule();
+
+void InitializeModuleAndPassManager();
 std::unique_ptr<FunctionAST> ParseTopLevelExpr();
 std::unique_ptr<FunctionAST> ParseDefinition();
 std::unique_ptr<PrototypeAST> ParseExtern();
