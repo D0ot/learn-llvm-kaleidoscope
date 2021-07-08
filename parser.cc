@@ -9,7 +9,10 @@
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/GVN.h"
 
+#include "KaleidoscopeJIT.h"
+
 using namespace llvm;
+using namespace llvm::orc;
 
 std::unique_ptr<ExprAST> LogError(const char *Str) {
   fprintf(stderr, "Error: %s\n", Str);
@@ -87,6 +90,37 @@ static std::unique_ptr<ExprAST> ParseIdentifierExpr() {
   return std::make_unique<CallExprAST>(IdName, std::move(Args));
 }
 
+/// ifexpr ::= 'if' expression 'then' expression 'else' expression
+static std::unique_ptr<ExprAST> ParseIfExpr() {
+  getNextToken();  // eat the if.
+
+  // condition.
+  auto Cond = ParseExpression();
+  if (!Cond)
+    return nullptr;
+
+  if (CurTok != tok_then)
+    return LogError("expected then");
+  getNextToken();  // eat the then
+
+  auto Then = ParseExpression();
+  if (!Then)
+    return nullptr;
+
+  if (CurTok != tok_else)
+    return LogError("expected else");
+
+  getNextToken();
+
+  auto Else = ParseExpression();
+  if (!Else)
+    return nullptr;
+
+  return std::make_unique<IfExprAST>(std::move(Cond), std::move(Then),
+                                      std::move(Else));
+}
+
+
 /// primary
 ///   ::= identifierexpr
 ///   ::= numberexpr
@@ -101,6 +135,8 @@ static std::unique_ptr<ExprAST> ParsePrimary() {
       return ParseNumberExpr();
     case '(':
       return ParseParenExpr();
+    case tok_if:
+      return ParseIfExpr();
   }
 }
 
@@ -206,7 +242,10 @@ std::unique_ptr<Module> TheModule;
 std::unique_ptr<IRBuilder<>> Builder;
 std::map<std::string, Value *> NamedValues;
 std::unique_ptr<legacy::FunctionPassManager> TheFPM;
+ExitOnError ExitOnErr;
 
+/// JIT
+std::unique_ptr<KaleidoscopeJIT> TheJIT;
 
 Value *LogErrorV(const char *Str) {
   LogError(Str);

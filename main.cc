@@ -5,10 +5,12 @@
 #include <memory>
 #include <map>
 
+#include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_ostream.h>
 
 #include "parser.h"
 #include "scanner.h"
+#include "KaleidoscopeJIT.h"
 
 
 
@@ -72,6 +74,10 @@ static void MainLoop() {
 }
 
 int main(int argc, char **argv) {
+  InitializeNativeTarget();
+  InitializeNativeTargetAsmPrinter();
+  InitializeNativeTargetAsmParser();
+
   BinopPrecedence['<'] = 10;
   BinopPrecedence['+'] = 20;
   BinopPrecedence['-'] = 20;
@@ -80,7 +86,7 @@ int main(int argc, char **argv) {
   fprintf(stderr, "ready> ");
   getNextToken();
 
-  InitializeModuleAndPassManager();
+  TheJIT = std::make_unique<KaleidoscopeJIT>();
 
   MainLoop();
 

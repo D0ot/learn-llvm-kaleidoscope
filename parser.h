@@ -21,8 +21,11 @@
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Support/Error.h"
 
+#include "KaleidoscopeJIT.h"
+
 
 using namespace llvm;
+using namespace llvm::orc;
 
 class ExprAST {
 public:
@@ -31,6 +34,16 @@ public:
   virtual Value *codegen() = 0;
 };
 
+class IfExprAST : public ExprAST {
+  std::unique_ptr<ExprAST> Cond, Then, Else;
+
+public:
+  IfExprAST(std::unique_ptr<ExprAST> Cond, std::unique_ptr<ExprAST> Then,
+            std::unique_ptr<ExprAST> Else)
+    : Cond(std::move(Cond)), Then(std::move(Then)), Else(std::move(Else)) {}
+
+  Value *codegen() override;
+};
 
 class NumberExprAST : public ExprAST {
   double Val;
@@ -97,6 +110,7 @@ extern std::map<std::string, Value *> NamedValues;
 extern std::unique_ptr<legacy::FunctionPassManager> TheFPM;
 extern std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
 extern ExitOnError ExitOnErr;
+extern std::unique_ptr<KaleidoscopeJIT> TheJIT;
 
 
 
