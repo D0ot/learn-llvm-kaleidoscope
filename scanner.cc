@@ -16,6 +16,7 @@ int gettok() {
     LastChar = getchar();
   }
 
+  // find a alphabet 
   if(isalpha(LastChar)) {
     IdentifierStr = LastChar;
     while(isalnum((LastChar = getchar()))) {
@@ -42,6 +43,14 @@ int gettok() {
       return tok_else;
     }
 
+    if(IdentifierStr == "for") {
+      return tok_for;
+    }
+
+    if(IdentifierStr == "in") {
+      return tok_in;
+    }
+    
     return tok_identifier;
   }
 
